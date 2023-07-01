@@ -4,6 +4,11 @@ A tool for quickly setting up `locations.json` for EmoTracker map trackers.
 
 Check it out [here](mapmarktool.github.io)!
 
+## Demo
+
+[![Quick demonstration video](https://img.youtube.com/vi/fmTFd6TYgyc/0.jpg)](https://www.youtube.com/watch?v=fmTFd6TYgyc)
+
+
 ## Features: 
 
 - Basic `location.json` export, will give you EmoTracker location data featuring all the locations with `name` and `map_locations` pre-filled
