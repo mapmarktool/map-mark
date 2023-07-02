@@ -29,7 +29,6 @@ const Editor = ({}: EditorProps) => {
           open={newMapOpen || maps.length == 0}
           onClose={() => setNewMapOpen(false)}
         />
-        {/*
         <Toolbar>
           <IconButton
             edge="start"
@@ -49,7 +48,6 @@ const Editor = ({}: EditorProps) => {
             New
           </Button>
         </Toolbar>
-    */}
       </AppBar>
       <EditorTabs onClickNew={() => setNewMapOpen(true)} />
       {currentMap && <MapEditor />}

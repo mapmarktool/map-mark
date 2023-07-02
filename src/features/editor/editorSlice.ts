@@ -1,7 +1,7 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit"
 import { RootState } from "../../app/store"
 import MapData, { Marker } from "../maps/MapData"
-import { Position } from "./MapCanvas"
+import { Position } from "../../app/types"
 
 interface EditorState {
   currentMap: string | null

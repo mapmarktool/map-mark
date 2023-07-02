@@ -1,7 +1,7 @@
 import { Box } from "@mui/material"
 import { useState } from "react"
 import EditorToolbar, { Tool } from "./EditorToolbar"
-import MapCanvas from "./MapCanvas"
+import MapCanvas from "../mapCanvas/MapCanvas"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { getCurrentMap } from "./editorSlice"
 import DetailsPane from "./DetailsPane"

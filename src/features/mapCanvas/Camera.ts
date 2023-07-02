@@ -1,4 +1,4 @@
-import { Position } from "./MapCanvas"
+import { Position } from "../../app/types"
 
 export default class Camera {
   public position: Position

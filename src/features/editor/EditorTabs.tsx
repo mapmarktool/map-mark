@@ -26,25 +26,21 @@ const EditorTabs = ({ onClickNew }: EditorTabsProps) => {
   return (
     <Paper
       elevation={8}
-      sx={
-        {
-          /* marginTop: 8 */
-        }
-      }
+      sx={{
+        marginTop: 8,
+      }}
     >
       <Tabs
         value={currentMap?.id}
         onChange={(_e, value) => dispatch(selectMap(value))}
         variant="scrollable"
         indicatorColor="secondary"
+        textColor="secondary"
         sx={{
           backgroundColor: "background.paper",
         }}
       >
         {tabs}
-        <Button onClick={onClickNew} color="success" startIcon={<AddCircle />}>
-          New
-        </Button>
       </Tabs>
     </Paper>
   )

@@ -126,6 +126,7 @@ const DetailsPane = ({}: DetailsPaneProps) => {
               <Tooltip placement="right" title="Copy position to clipboard">
                 <IconButton
                   aria-label="Copy"
+                  disabled={!activeMarker}
                   onClick={() => {
                     if (activeMarker) {
                       copyToClipboard(
