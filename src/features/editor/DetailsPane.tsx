@@ -18,21 +18,24 @@ import {
   FormControl,
   MenuItem,
   Autocomplete,
+  AutocompleteRenderInputParams,
 } from "@mui/material"
 import ColorPicker from "./ColorPicker"
 import {
   getCurrentMap,
-  setActiveMarker,
+  getLocations,
+  getMaps,
+  setActiveLocation,
   setBgColor,
-  setMarkerParent,
-  updateMarkerName,
-  updateMarkerPosition,
+  setLocationParent,
+  updateLocationName,
+  updateLocationPosition,
 } from "./editorSlice"
 import { useAppSelector, useAppDispatch } from "../../app/hooks"
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, ReactNode, useEffect, useRef, useState } from "react"
 import EmotrackerExporter from "../exporter/emoTracker/EmoTrackerExporter"
 import ExportDialog from "../exporter/ExportDialog"
-import { Marker } from "../maps/MapData"
+import { Location } from "../maps/MapData"
 import { FileCopy, SelectAllOutlined } from "@mui/icons-material"
 import { copyToClipboard } from "../../helpers"
 
@@ -40,62 +43,97 @@ interface DetailsPaneProps {}
 
 const DetailsPane = ({}: DetailsPaneProps) => {
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
-  const [exportMarkers, setExportMarkers] = useState<Marker[] | Marker>([])
+  const [exportLocations, setExportLocations] = useState<Location[] | Location>(
+    [],
+  )
+  const maps = useAppSelector(getMaps)
   const currentMap = useAppSelector(getCurrentMap)
+  const locations = useAppSelector(getLocations)
   const dispatch = useAppDispatch()
   const nameField = useRef<HTMLInputElement>()
-  const markers = currentMap?.markers.map((m) => (
+  const locationItems = locations.map((m) => (
     <Fragment key={m.id}>
       <ListItemButton
         key={m.id}
-        onClick={() => dispatch(setActiveMarker(m.id))}
-        selected={currentMap.activeMarker == m.id}
+        onClick={() => dispatch(setActiveLocation(m.id))}
+        selected={currentMap?.activeLocation == m.id}
       >
-        <ListItemText primary={m.name} secondary={`${m.x}, ${m.y}`} />
+        <ListItemText
+          primary={m.name}
+          secondary={`${maps.find((map) => map.id == m.map)?.name} (${m.x}, ${
+            m.y
+          })`}
+        />
       </ListItemButton>
       <Divider />
     </Fragment>
   ))
-  const activeMarker = currentMap?.markers.find(
-    (m) => m.id == currentMap?.activeMarker,
+  const activeLocation = locations?.find(
+    (m) => m.id == currentMap?.activeLocation,
+  )
+
+  const locationParentCandidates = activeLocation
+    ? locations.filter(
+        (l) => l.id != activeLocation.id && l.parentId != activeLocation.id,
+      )
+    : []
+
+  const currentLocationParent = locations.find(
+    (l) => l.id == activeLocation?.parentId,
   )
 
   useEffect(() => {
     nameField.current?.focus()
-  }, [markers?.length])
+  }, [locations?.length])
+
+  function getLocationLabel(location: Location) {
+    const name = location.name ?? `${location.x}, ${location.y}`
+    return `${maps.find((m) => m.id == location.map)?.name} - ${name}`
+  }
 
   return (
     <Paper elevation={2} sx={{ width: 300, borderRadius: 0, padding: 2 }}>
       <Stack gap={2}>
         <Box>
+          <Box>
+            <Typography variant="overline" display="block">
+              Background
+            </Typography>
+            <ColorPicker
+              width={32}
+              height={32}
+              color={currentMap?.bgColor ?? "#000"}
+              onChange={(hex) => dispatch(setBgColor(hex))}
+            />
+          </Box>
           <Typography variant="overline" display="block">
-            Active Marker
+            Active Location
           </Typography>
           <Paper elevation={6} sx={{ padding: 2 }}>
             <TextField
               inputRef={nameField}
-              disabled={!activeMarker}
-              value={activeMarker?.name ?? ""}
+              disabled={!activeLocation}
+              value={activeLocation?.name ?? ""}
               onChange={(e) =>
-                dispatch(updateMarkerName(e.currentTarget.value))
+                dispatch(updateLocationName(e.currentTarget.value))
               }
               label="Name"
               fullWidth
             />
             <Stack direction={"row"} sx={{ marginTop: 2 }} gap={2}>
               <TextField
-                disabled={!activeMarker}
+                disabled={!activeLocation}
                 size="small"
                 onChange={(e) => {
                   const x = parseInt(e.currentTarget.value)
                   dispatch(
-                    updateMarkerPosition({
+                    updateLocationPosition({
                       x: isNaN(x) ? 0 : x,
-                      y: activeMarker?.y ?? 0,
+                      y: activeLocation?.y ?? 0,
                     }),
                   )
                 }}
-                value={activeMarker?.x ?? ""}
+                value={activeLocation?.x ?? ""}
                 inputProps={{
                   inputMode: "numeric",
                   pattern: "[0-9]*",
@@ -107,18 +145,18 @@ const DetailsPane = ({}: DetailsPaneProps) => {
                 }}
               />
               <TextField
-                disabled={!activeMarker}
+                disabled={!activeLocation}
                 size="small"
                 onChange={(e) => {
                   const y = parseInt(e.currentTarget.value)
                   dispatch(
-                    updateMarkerPosition({
-                      x: activeMarker?.x ?? 0,
+                    updateLocationPosition({
+                      x: activeLocation?.x ?? 0,
                       y: isNaN(y) ? 0 : y,
                     }),
                   )
                 }}
-                value={activeMarker?.y ?? ""}
+                value={activeLocation?.y ?? ""}
                 inputProps={{
                   inputMode: "numeric",
                   pattern: "[0-9]*",
@@ -133,13 +171,13 @@ const DetailsPane = ({}: DetailsPaneProps) => {
                 <span>
                   <IconButton
                     aria-label="Copy"
-                    disabled={!activeMarker}
+                    disabled={!activeLocation}
                     onClick={() => {
-                      if (activeMarker) {
+                      if (activeLocation) {
                         copyToClipboard(
                           `
-"x": ${activeMarker.x},
-"y": ${activeMarker.y}`,
+"x": ${activeLocation.x},
+"y": ${activeLocation.y}`,
                         )
                       }
                     }}
@@ -149,13 +187,29 @@ const DetailsPane = ({}: DetailsPaneProps) => {
                 </span>
               </Tooltip>
             </Stack>
+            <Autocomplete
+              sx={{ marginTop: 2 }}
+              renderInput={(params) => <TextField {...params} label="Parent" />}
+              options={locationParentCandidates}
+              value={currentLocationParent ?? null}
+              onChange={(_, location) =>
+                activeLocation &&
+                dispatch(
+                  setLocationParent({
+                    id: activeLocation.id,
+                    parent: location?.id,
+                  }),
+                )
+              }
+              getOptionLabel={getLocationLabel}
+            />
             <Button
               variant="outlined"
               fullWidth
               sx={{ marginTop: 2 }}
               onClick={() => {
-                if (currentMap && activeMarker) {
-                  setExportMarkers(activeMarker)
+                if (currentMap && activeLocation) {
+                  setExportLocations(activeLocation)
                   setExportDialogOpen(true)
                 }
               }}
@@ -166,11 +220,11 @@ const DetailsPane = ({}: DetailsPaneProps) => {
         </Box>
         <Box>
           <Typography variant="overline" display="block">
-            Markers
+            Locations
           </Typography>
           <Paper elevation={6} sx={{ overflow: "scroll", height: "50vh" }}>
-            {markers && markers.length > 0 && (
-              <List sx={{ padding: 0 }}>{markers}</List>
+            {locationItems && locationItems.length > 0 && (
+              <List sx={{ padding: 0 }}>{locationItems}</List>
             )}
           </Paper>
           <Button
@@ -179,7 +233,7 @@ const DetailsPane = ({}: DetailsPaneProps) => {
             sx={{ marginTop: 2 }}
             onClick={() => {
               if (currentMap) {
-                setExportMarkers(currentMap.markers)
+                setExportLocations(locations)
                 setExportDialogOpen(true)
               }
             }}
@@ -187,21 +241,9 @@ const DetailsPane = ({}: DetailsPaneProps) => {
             Export
           </Button>
         </Box>
-        <Box>
-          <Typography variant="overline" display="block">
-            Background
-          </Typography>
-          <ColorPicker
-            width={32}
-            height={32}
-            color={currentMap?.bgColor ?? "#000"}
-            onChange={(hex) => dispatch(setBgColor(hex))}
-          />
-        </Box>
         <ExportDialog
           open={exportDialogOpen}
-          map={currentMap}
-          markers={exportMarkers}
+          locations={exportLocations}
           onClose={() => setExportDialogOpen(false)}
         />
       </Stack>

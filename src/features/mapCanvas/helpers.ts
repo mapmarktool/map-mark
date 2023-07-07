@@ -1,6 +1,6 @@
 import { FormatTextdirectionRToL } from "@mui/icons-material"
 import { Position } from "../../app/types"
-import { Marker } from "../maps/MapData"
+import { Location } from "../maps/MapData"
 import { MouseState } from "../mouse/mouseState"
 import { MARKER_SIZE } from "./render"
 
@@ -26,7 +26,7 @@ export function duration(start: number) {
   return Date.now() - start
 }
 
-export function findHoveredMarker(markers: Marker[], mouse: MouseState) {
+export function findHoveredMarker(markers: Location[], mouse: MouseState) {
   const halfMarker = MARKER_SIZE / 2
   const hover = [...markers]
     .reverse()

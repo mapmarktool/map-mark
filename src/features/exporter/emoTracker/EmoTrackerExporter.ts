@@ -1,5 +1,5 @@
 import { Exporter } from "../Exporter"
-import MapData, { Marker } from "../../maps/MapData"
+import MapData, { Location } from "../../maps/MapData"
 
 interface EmoTrackerLocation {
   name?: string
@@ -11,36 +11,36 @@ interface EmoTrackerLocation {
   children?: EmoTrackerLocation[]
 }
 
-function markerToLocation(
-  map: MapData,
-  marker: Marker,
-  otherMarkers?: Marker[],
+function dataToLocation(
+  maps: MapData[],
+  location: Location,
+  otherMarkers?: Location[],
 ): EmoTrackerLocation {
   return {
-    name: marker.name,
+    name: location.name,
     map_locations: [
       {
-        map: map.name,
-        x: marker.x,
-        y: marker.y,
+        map: maps.find((m) => m.id == location.map)?.name ?? "UNKNOWN",
+        x: location.x,
+        y: location.y,
       },
     ],
     children: otherMarkers
-      ?.filter((m) => m.parentId == marker.id)
-      .map((m) => markerToLocation(map, m, otherMarkers)),
+      ?.filter((m) => m.parentId == location.id)
+      .map((m) => dataToLocation(maps, m, otherMarkers)),
   }
 }
 
 const EmotrackerExporter: Exporter = {
   name: "Emotracker",
-  exportMarker: function (map: MapData, marker: Marker): string {
-    return JSON.stringify(markerToLocation(map, marker), null, 4)
+  exportLocation: function (maps: MapData[], location: Location): string {
+    return JSON.stringify(dataToLocation(maps, location), null, 4)
   },
-  exportMap: function (map: MapData, markers: Marker[]): string {
+  exportLocations: function (maps: MapData[], locations: Location[]): string {
     return JSON.stringify(
-      markers
+      locations
         .filter((m) => !m.parentId)
-        .map((marker) => markerToLocation(map, marker, markers)),
+        .map((location) => dataToLocation(maps, location, locations)),
       null,
       4,
     )

@@ -20,8 +20,9 @@ interface UseMouseSettings {
 
 function useMouse({ parent, worldPositionTransform }: UseMouseSettings) {
   const [mouseState, setMouseState] = useState<MouseState>(initialMouseState)
-  const [keyboardState, setKeyboardState] =
-    useState<KeyboardState>(initialKeyboardState)
+  const [keyboardState, setKeyboardState] = useState<KeyboardState>(
+    initialKeyboardState(),
+  )
 
   // Keyboard input
   useEffect(() => {
@@ -43,8 +44,6 @@ function useMouse({ parent, worldPositionTransform }: UseMouseSettings) {
 
     window.addEventListener("keydown", onKeyDownHandler)
     window.addEventListener("keyup", onKeyUpHandler)
-
-    console.log("Hooking up keyboard stuff")
 
     return () => {
       window.removeEventListener("keydown", onKeyDownHandler)

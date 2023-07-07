@@ -1,13 +1,15 @@
 import { Box } from "@mui/material"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import {
-  addMarker,
+  addLocation,
   getCurrentMap,
-  removeMarker,
-  setActiveMarker,
-  setMarkerParent,
-  setSelectedMarkers,
-  updateMarkerPosition,
+  getLocations,
+  getMaps,
+  removeLocation,
+  setActiveLocation,
+  setLocationParent,
+  setSelectedLocations,
+  updateLocationPosition,
 } from "../editor/editorSlice"
 import { useEffect, useRef, useState } from "react"
 import {
@@ -18,7 +20,6 @@ import {
 } from "./helpers"
 import { Position } from "../../app/types"
 import render, { MARKER_SIZE } from "./render"
-import { current } from "@reduxjs/toolkit"
 import useInput from "../input/useInput"
 
 interface MapCanvasProps {}
@@ -38,7 +39,9 @@ const MapCanvas = ({}: MapCanvasProps) => {
   const [startedDragOnMarker, setStartedDragOnMarker] = useState(false)
   const [draggingMarkers, setDraggingMarkers] = useState(false)
   const dispatch = useAppDispatch()
+  const maps = useAppSelector(getMaps)
   const currentMap = useAppSelector(getCurrentMap)
+  const locations = useAppSelector(getLocations)
   const canvas = useRef<HTMLCanvasElement>(null)
   const {
     mouseState: mouse,
@@ -51,7 +54,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
       screenToWorldPosition(pos, cameraPos, cameraZoom),
   })
   const imageData = currentMap?.image
-  const markers = currentMap?.markers
+  const visibleLocations = locations.filter((l) => l.map == currentMap?.id)
 
   useEffect(() => {
     function handleResize() {
@@ -104,7 +107,8 @@ const MapCanvas = ({}: MapCanvasProps) => {
       cameraZoom,
       mouseState: mouse,
       map: currentMap,
-      markers,
+      maps,
+      locations,
       hoverMarker,
       draggingMarkers,
     })
@@ -115,9 +119,9 @@ const MapCanvas = ({}: MapCanvasProps) => {
     cameraPos,
     cameraZoom,
     mouse,
-    markers,
-    currentMap?.activeMarker,
-    currentMap?.selectedMarkers,
+    locations,
+    currentMap?.activeLocation,
+    currentMap?.selectedLocations,
     draggingMarkers,
     hoverMarker,
   ])
@@ -135,8 +139,8 @@ const MapCanvas = ({}: MapCanvasProps) => {
     }
 
     // Check if hovering marker
-    if (markers) {
-      setHoverMarker(findHoveredMarker(markers, mouse)?.id)
+    if (visibleLocations) {
+      setHoverMarker(findHoveredMarker(visibleLocations, mouse)?.id)
     }
 
     if (
@@ -148,8 +152,8 @@ const MapCanvas = ({}: MapCanvasProps) => {
     }
 
     if (mouse.buttons.left.justReleased && draggingMarkers && mouse.position) {
-      if (currentMap?.activeMarker) {
-        dispatch(updateMarkerPosition(mouse.position))
+      if (currentMap?.activeLocation) {
+        dispatch(updateLocationPosition(mouse.position))
       }
       setStartedDragOnMarker(false)
       setDraggingMarkers(false)
@@ -158,14 +162,14 @@ const MapCanvas = ({}: MapCanvasProps) => {
     if (hoverMarker) {
       if (mouse.buttons.left.justPressed) {
         setStartedDragOnMarker(true)
-        dispatch(setActiveMarker(hoverMarker))
+        dispatch(setActiveLocation(hoverMarker))
       }
       if (
         mouse.buttons.right.justReleased &&
         duration(mouse.buttons.right.holdStart) <= 300
       ) {
-        dispatch(removeMarker(hoverMarker))
-        dispatch(setSelectedMarkers(undefined))
+        dispatch(removeLocation(hoverMarker))
+        dispatch(setSelectedLocations(undefined))
       }
     } else {
       if (
@@ -182,7 +186,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
         mouse.buttons.right.justReleased &&
         duration(mouse.buttons.right.holdStart) < 300
       ) {
-        dispatch(setActiveMarker(undefined))
+        dispatch(setActiveLocation(undefined))
       }
 
       if (
@@ -195,18 +199,18 @@ const MapCanvas = ({}: MapCanvasProps) => {
         const id = crypto.randomUUID()
 
         dispatch(
-          addMarker({
+          addLocation({
             id,
             ...mouse.position,
           }),
         )
 
         // If shift is held, automatically parent it to previous marker
-        if (keyboard.keys.shift.pressed && currentMap?.activeMarker) {
-          dispatch(setMarkerParent({ id, parent: currentMap.activeMarker }))
+        if (keyboard.keys.shift.pressed && currentMap?.activeLocation) {
+          dispatch(setLocationParent({ id, parent: currentMap.activeLocation }))
         }
 
-        dispatch(setActiveMarker(id))
+        dispatch(setActiveLocation(id))
       }
 
       if (
@@ -223,7 +227,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
           x: Math.max(mouse.buttons.left.startClickPos.x, mouse.position.x),
           y: Math.max(mouse.buttons.left.startClickPos.y, mouse.position.y),
         }
-        const selected = markers
+        const selected = visibleLocations
           ?.filter(
             (m) =>
               m.x > startPos.x &&
@@ -232,8 +236,14 @@ const MapCanvas = ({}: MapCanvasProps) => {
               m.y < endPos.y,
           )
           .map((m) => m.id)
-        dispatch(setSelectedMarkers(selected))
+        dispatch(setSelectedLocations(selected))
       }
+    }
+
+    if (keyboard.keys.delete.justPressed) {
+      currentMap?.selectedLocations?.forEach((id) => {
+        dispatch(removeLocation(id))
+      })
     }
 
     updateMouse()
@@ -243,26 +253,11 @@ const MapCanvas = ({}: MapCanvasProps) => {
     updateMouse,
     keyboard,
     updateKeyboard,
-    markers,
+    visibleLocations,
     hoverMarker,
-    currentMap?.activeMarker,
+    currentMap?.activeLocation,
+    currentMap?.selectedLocations,
   ])
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code == "Delete" && currentMap?.selectedMarkers) {
-        currentMap.selectedMarkers.forEach((id) => {
-          dispatch(removeMarker(id))
-        })
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown, false)
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown)
-    }
-  }, [currentMap?.selectedMarkers])
 
   return (
     <Box

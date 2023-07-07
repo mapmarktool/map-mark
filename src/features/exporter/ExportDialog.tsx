@@ -9,32 +9,34 @@ import {
   Stack,
   TextField,
 } from "@mui/material"
-import MapData, { Marker } from "../maps/MapData"
+import MapData, { Location } from "../maps/MapData"
 import { useEffect, useState } from "react"
 import { Exporter } from "./Exporter"
 import EmotrackerExporter from "./emoTracker/EmoTrackerExporter"
 import { copyToClipboard } from "../../helpers"
+import { useAppSelector } from "../../app/hooks"
+import { getMaps } from "../editor/editorSlice"
 
 interface ExportDialogProps {
-  map?: MapData
-  markers?: Marker[] | Marker
+  locations?: Location[] | Location
   open: boolean
   onClose: () => void
 }
 
-const ExportDialog = ({ map, markers, open, onClose }: ExportDialogProps) => {
+const ExportDialog = ({ locations, open, onClose }: ExportDialogProps) => {
   const [exporter, setExporter] = useState<Exporter>(EmotrackerExporter)
   const [output, setOutput] = useState("")
+  const maps = useAppSelector(getMaps)
 
   useEffect(() => {
-    if (exporter && map && markers) {
+    if (exporter && maps && locations) {
       setOutput(
-        Array.isArray(markers)
-          ? exporter.exportMap(map, markers)
-          : exporter.exportMarker(map, markers),
+        Array.isArray(locations)
+          ? exporter.exportLocations(maps, locations)
+          : exporter.exportLocation(maps, locations),
       )
     }
-  }, [exporter, map, markers])
+  }, [exporter, maps, locations])
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>

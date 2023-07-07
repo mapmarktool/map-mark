@@ -1,5 +1,6 @@
 export enum InputKey {
   Shift = "shift",
+  Delete = "delete",
 }
 
 export interface KeyState {
@@ -15,18 +16,19 @@ export interface KeyboardState {
   }
 }
 
-const initialKeyState: KeyState = {
+const initialKeyState = (): KeyState => ({
   pressed: false,
   justPressed: false,
   justReleased: false,
   holdStart: 0,
-}
+})
 
-export const initialKeyboardState: KeyboardState = {
+export const initialKeyboardState = (): KeyboardState => ({
   keys: {
-    shift: initialKeyState,
+    delete: initialKeyState(),
+    shift: initialKeyState(),
   },
-}
+})
 
 export const keyboardHandler = {
   press(state: KeyboardState, key: InputKey) {

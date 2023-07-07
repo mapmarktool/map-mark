@@ -1,17 +1,19 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit"
 import { RootState } from "../../app/store"
-import MapData, { Marker } from "../maps/MapData"
+import MapData, { Location } from "../maps/MapData"
 import { Position } from "../../app/types"
 import { MarkEmailRead } from "@mui/icons-material"
 
 interface EditorState {
   currentMap: string | null
   maps: MapData[]
+  locations: Location[]
 }
 
 const initialState: EditorState = {
   currentMap: null,
   maps: [],
+  locations: [],
 }
 
 interface CreateMapPayload {
@@ -20,7 +22,7 @@ interface CreateMapPayload {
   name: string
 }
 
-interface AddMarkerPayload {
+interface AddLocationPayload {
   id: string
   x: number
   y: number
@@ -30,15 +32,15 @@ const getCurrMapIndex = (state: EditorState) => {
   return state.maps.findIndex((m) => m.id === state.currentMap)
 }
 
-const getActiveMarkerIndex = (state: EditorState) => {
+const getActiveLocationIndex = (state: EditorState) => {
   const mapIndex = getCurrMapIndex(state)
   if (mapIndex >= 0) {
     const map = state.maps[mapIndex]
-    const active = map.activeMarker
+    const active = map.activeLocation
     if (!active) {
       return -1
     }
-    return map.markers.findIndex((m) => m.id == active)
+    return state.locations.findIndex((l) => l.id == active)
   }
 
   return -1
@@ -52,7 +54,7 @@ export const editorSlice = createSlice({
       const lastMap =
         state.maps.length > 0 ? state.maps[state.maps.length - 1] : null
       const bgColor = lastMap?.bgColor ?? undefined
-      state.maps = [...state.maps, { bgColor, markers: [], ...action.payload }]
+      state.maps = [...state.maps, { bgColor, ...action.payload }]
       state.currentMap = action.payload.id
     },
     selectMap: (state, action: PayloadAction<string>) => {
@@ -66,104 +68,89 @@ export const editorSlice = createSlice({
         state.maps[mapIndex].bgColor = action.payload
       }
     },
-    setActiveMarker: (state, action: PayloadAction<string | undefined>) => {
+    setActiveLocation: (state, action: PayloadAction<string | undefined>) => {
+      const marker = state.locations.find((m) => m.id == action.payload)
+
+      if (marker) {
+        state.currentMap = marker.map
+      }
+
       const mapIndex = getCurrMapIndex(state)
       if (mapIndex >= 0) {
         if (!action.payload) {
-          state.maps[mapIndex].activeMarker = undefined
-          state.maps[mapIndex].selectedMarkers = undefined
+          state.maps[mapIndex].activeLocation = undefined
+          state.maps[mapIndex].selectedLocations = undefined
           return
         }
 
-        const marker = state.maps[mapIndex].markers.find(
-          (m) => m.id == action.payload,
-        )
-        state.maps[mapIndex].activeMarker = marker?.id
-        state.maps[mapIndex].selectedMarkers = marker ? [marker.id] : undefined
+        state.maps[mapIndex].activeLocation = marker?.id
+        state.maps[mapIndex].selectedLocations = marker
+          ? [marker.id]
+          : undefined
       }
     },
-    setMarkerParent: (
+    setLocationParent: (
       state,
       action: PayloadAction<{ id: string; parent?: string }>,
     ) => {
-      const mapIndex = getCurrMapIndex(state)
-      if (mapIndex >= 0) {
-        if (!action.payload) {
-          return
-        }
+      const markerIndex = state.locations.findIndex(
+        (m) => m.id == action.payload.id,
+      )
 
-        const markerIndex = state.maps[mapIndex].markers.findIndex(
-          (m) => m.id == action.payload.id,
-        )
-
-        state.maps[mapIndex].markers[markerIndex].parentId =
-          action.payload.parent
-      }
+      state.locations[markerIndex].parentId = action.payload.parent
     },
-    setSelectedMarkers: (
+    setSelectedLocations: (
       state,
       action: PayloadAction<string[] | undefined>,
     ) => {
       const mapIndex = getCurrMapIndex(state)
       if (mapIndex >= 0) {
-        state.maps[mapIndex].selectedMarkers = action.payload
+        state.maps[mapIndex].selectedLocations = action.payload
       }
     },
-    removeMarker: (state, action: PayloadAction<string>) => {
-      const mapIndex = getCurrMapIndex(state)
-      if (mapIndex >= 0) {
-        const currMap = state.maps[mapIndex]
-        state.maps[mapIndex].markers = currMap.markers.filter(
-          (m) => m.id != action.payload,
-        )
+    removeLocation: (state, action: PayloadAction<string>) => {
+      state.locations = state.locations.filter((m) => m.id != action.payload)
 
-        if (currMap.activeMarker == action.payload) {
-          state.maps[mapIndex].activeMarker = undefined
-        }
+      state.maps = state.maps.map((m) => ({
+        ...m,
+        selectedLocations: m.selectedLocations?.filter(
+          (l) => l != action.payload,
+        ),
+        activeLocation:
+          m.activeLocation == action.payload ? undefined : m.activeLocation,
+      }))
 
-        state.maps[mapIndex].markers.forEach((m) => {
-          m.parentId = m.parentId == action.payload ? undefined : m.parentId
-        })
-
-        state.maps[mapIndex].selectedMarkers = state.maps[
-          mapIndex
-        ].selectedMarkers?.filter((id) => id != action.payload)
-      }
+      state.locations.forEach((m) => {
+        m.parentId = m.parentId == action.payload ? undefined : m.parentId
+      })
     },
-    addMarker: (state, action: PayloadAction<AddMarkerPayload>) => {
-      const mapIndex = getCurrMapIndex(state)
-      if (mapIndex >= 0) {
-        state.maps[mapIndex].markers.push({
-          id: action.payload.id,
-          x: Math.round(action.payload.x),
-          y: Math.round(action.payload.y),
-        })
+    addLocation: (state, action: PayloadAction<AddLocationPayload>) => {
+      if (!state.currentMap) {
+        return
       }
+
+      state.locations.push({
+        id: action.payload.id,
+        map: state.currentMap,
+        x: Math.round(action.payload.x),
+        y: Math.round(action.payload.y),
+      })
     },
-    updateMarkerPosition: (state, action: PayloadAction<Position>) => {
+    updateLocationPosition: (state, action: PayloadAction<Position>) => {
       if (isNaN(action.payload.x) || isNaN(action.payload.y)) {
         return
       }
 
-      const mapIndex = getCurrMapIndex(state)
-      const activeMarkerIndex = getActiveMarkerIndex(state)
+      const activeMarkerIndex = getActiveLocationIndex(state)
 
-      if (mapIndex >= 0 && activeMarkerIndex >= 0) {
-        state.maps[mapIndex].markers[activeMarkerIndex].x = Math.round(
-          action.payload.x,
-        )
-        state.maps[mapIndex].markers[activeMarkerIndex].y = Math.round(
-          action.payload.y,
-        )
+      if (activeMarkerIndex >= 0) {
+        state.locations[activeMarkerIndex].x = Math.round(action.payload.x)
+        state.locations[activeMarkerIndex].y = Math.round(action.payload.y)
       }
     },
-    updateMarkerName: (state, action: PayloadAction<string>) => {
-      const mapIndex = getCurrMapIndex(state)
-      const activeMarkerIndex = getActiveMarkerIndex(state)
-
-      if (mapIndex >= 0 && activeMarkerIndex >= 0) {
-        state.maps[mapIndex].markers[activeMarkerIndex].name = action.payload
-      }
+    updateLocationName: (state, action: PayloadAction<string>) => {
+      const activeMarkerIndex = getActiveLocationIndex(state)
+      state.locations[activeMarkerIndex].name = action.payload
     },
   },
 })
@@ -171,18 +158,19 @@ export const editorSlice = createSlice({
 export const {
   selectMap,
   newMap,
-  addMarker,
-  removeMarker,
-  updateMarkerPosition,
-  updateMarkerName,
-  setActiveMarker,
-  setMarkerParent,
-  setSelectedMarkers,
+  addLocation,
+  removeLocation,
+  updateLocationPosition,
+  updateLocationName,
+  setActiveLocation,
+  setLocationParent,
+  setSelectedLocations,
   setBgColor,
 } = editorSlice.actions
 
 export const getCurrentMap = (state: RootState) =>
   state.editor.maps.find((m) => m.id === state.editor.currentMap)
 export const getMaps = (state: RootState) => state.editor.maps
+export const getLocations = (state: RootState) => state.editor.locations
 
 export const editorReducer = editorSlice.reducer

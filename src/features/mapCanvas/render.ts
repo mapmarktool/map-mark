@@ -1,8 +1,7 @@
-import { Maximize } from "@mui/icons-material"
 import { Position } from "../../app/types"
-import MapData, { Marker } from "../maps/MapData"
+import MapData, { Location } from "../maps/MapData"
 import Camera from "./Camera"
-import { center, distance, drawLineArrow, duration, rounded } from "./helpers"
+import { drawLineArrow, rounded } from "./helpers"
 import { MouseState } from "../input/mouseState"
 
 interface RenderData {
@@ -12,7 +11,8 @@ interface RenderData {
   cameraZoom: number
   mouseState: MouseState
   map?: MapData
-  markers?: Marker[]
+  maps?: MapData[]
+  locations?: Location[]
   hoverMarker?: string
   draggingMarkers: boolean
 }
@@ -26,7 +26,8 @@ export default function render({
   cameraZoom,
   mouseState: mouse,
   map,
-  markers,
+  maps,
+  locations,
   hoverMarker,
   draggingMarkers,
 }: RenderData) {
@@ -35,6 +36,8 @@ export default function render({
   if (!ctx) {
     return
   }
+
+  const visibleLocations = locations?.filter((l) => map && l.map == map.id)
 
   const camera = new Camera(cameraPos, cameraZoom)
 
@@ -75,37 +78,79 @@ export default function render({
   }
 
   // Draw relationships
-  markers?.forEach((m) => {
-    if (m.parentId) {
-      const parent = markers.find((p) => m.parentId == p.id)
-      if (parent) {
+  locations?.forEach((l) => {
+    if (l.parentId) {
+      ctx.strokeStyle =
+        l.id == map?.activeLocation || l.parentId == map?.activeLocation
+          ? "white"
+          : "rgba(255, 255, 255, 0.25)"
+      ctx.fillStyle = ctx.strokeStyle
+
+      const parent = locations?.find((p) => l.parentId == p.id)
+      if (parent && parent.map == l.map && l.map == map?.id) {
         // Handle line targets in cases where one of the markers are being dragged
         const markerPos: Position =
-          draggingMarkers && m.id == map?.activeMarker && mouse.position
+          draggingMarkers && l.id == map?.activeLocation && mouse.position
             ? mouse.position
-            : { x: m.x, y: m.y }
+            : { x: l.x, y: l.y }
         const parentPos: Position =
-          draggingMarkers && parent.id == map?.activeMarker && mouse.position
+          draggingMarkers && parent.id == map?.activeLocation && mouse.position
             ? mouse.position
             : { x: parent.x, y: parent.y }
 
-        ctx.strokeStyle =
-          m.id == map?.activeMarker || m.parentId == map?.activeMarker
-            ? "white"
-            : "rgba(255, 255, 255, 0.25)"
-        ctx.fillStyle = ctx.strokeStyle
         drawLineArrow(ctx, parentPos, markerPos, 4, MARKER_SIZE + 2)
+      } else if (parent && (parent.map == map?.id || l.map == map?.id)) {
+        const parentOnOtherMap = parent.map != map?.id
+        const originPos = parentOnOtherMap
+          ? { x: l.x, y: l.y }
+          : { x: parent.x, y: parent.y }
+
+        // Handle line targets in cases where one of the markers are being dragged
+        const markerPos: Position =
+          draggingMarkers &&
+          (parentOnOtherMap
+            ? l.id == map?.activeLocation
+            : parent.id == map?.activeLocation) &&
+          mouse.position
+            ? mouse.position
+            : originPos
+        const parentPos: Position = {
+          x: markerPos.x,
+          y: parentOnOtherMap
+            ? markerPos.y - MARKER_SIZE * 2
+            : markerPos.y + MARKER_SIZE * 2.5,
+        }
+        drawLineArrow(
+          ctx,
+          parentOnOtherMap ? parentPos : markerPos,
+          parentOnOtherMap ? markerPos : parentPos,
+          4,
+          MARKER_SIZE + 2,
+        )
+
+        if (l.id == map?.activeLocation || parent.id == map?.activeLocation) {
+          const loc = parentOnOtherMap ? parent : l
+          const map = maps?.find((m) => m.id == loc.map)
+          const name = loc.name ?? `${loc.x}, ${loc.y}`
+          ctx.textAlign = "center"
+          ctx.font = "6px sans-serif"
+          ctx.fillText(
+            `${map?.name} (${name})`,
+            parentPos.x,
+            parentPos.y + (parentOnOtherMap ? -4 : 2),
+          )
+        }
       }
     }
   })
 
-  markers?.forEach((m) => {
+  visibleLocations?.forEach((m) => {
     const selected =
-      map?.selectedMarkers && map?.selectedMarkers?.indexOf(m.id) >= 0
+      map?.selectedLocations && map?.selectedLocations?.indexOf(m.id) >= 0
     ctx.shadowColor = "black"
     ctx.shadowBlur = 10
 
-    if (map?.activeMarker == m.id) {
+    if (map?.activeLocation == m.id) {
       ctx.fillStyle = "#00ff33"
     } else if (hoverMarker == m.id) {
       ctx.fillStyle = "white"
