@@ -1,7 +1,6 @@
-import { FormatTextdirectionRToL } from "@mui/icons-material"
 import { Position } from "../../app/types"
+import { MouseState } from "../input/mouseState"
 import { Location } from "../maps/MapData"
-import { MouseState } from "../mouse/mouseState"
 import { MARKER_SIZE } from "./render"
 
 export function distance(pos1: Position, pos2: Position) {
