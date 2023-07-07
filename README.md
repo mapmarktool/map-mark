@@ -6,22 +6,21 @@ Check it out [here](mapmarktool.github.io)!
 
 ## Demo
 
-[![Quick demonstration video](https://img.youtube.com/vi/fmTFd6TYgyc/0.jpg)](https://www.youtube.com/watch?v=fmTFd6TYgyc)
+[![Quick demonstration video](https://img.youtube.com/vi/thiOZombVUw/0.jpg)](https://www.youtube.com/watch?v=thiOZombVUw)
 
+## Features:
 
-## Features: 
-
-- Basic `location.json` export, will give you EmoTracker location data featuring all the locations with `name` and `map_locations` pre-filled
+- Basic `location.json` export, will give you EmoTracker location data featuring all the locations with `name`, `map_locations` and `children` pre-filled
 - Export individual markers
 
-## Basic controls: 
+## Basic controls:
 
-- Hold middle mouse to pan, mouse wheel to zoom in/out
+- Hold middle mouse or right click to pan, mouse wheel to zoom in/out
 - Left click to add marker
+- Shift + Left click to add a new marker that is a descendent of the currently active marker
 - Right click to remove marker
-- Hold left click and drag to add marker in center of selection (Just to help you center a location in a room for instance)
 
 ## Known Limitations:
 
-- :warning:  Will not save any data, so if you refresh it is all gone, export often!
-- Requires a mouse with clickable scroll wheel
+- :warning: Will not save any data, so if you refresh it is all gone, export often!
+- Requires a mouse with scroll wheel if you want to zoom
