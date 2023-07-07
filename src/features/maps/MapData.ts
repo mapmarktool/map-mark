@@ -1,9 +1,11 @@
 export interface Marker {
   id: string
   name?: string
+  parentId?: string
   x: number
   y: number
 }
+
 export default interface MapData {
   id: string
   name: string
@@ -11,4 +13,5 @@ export default interface MapData {
   bgColor?: string
   markers: Marker[]
   activeMarker?: string
+  selectedMarkers?: string[]
 }

@@ -5,16 +5,26 @@ import {
   getCurrentMap,
   removeMarker,
   setActiveMarker,
+  setMarkerParent,
+  setSelectedMarkers,
+  updateMarkerPosition,
 } from "../editor/editorSlice"
 import { useEffect, useRef, useState } from "react"
-import { duration, findHoveredMarker, screenToWorldPosition } from "./helpers"
+import {
+  distance,
+  duration,
+  findHoveredMarker,
+  screenToWorldPosition,
+} from "./helpers"
 import { Position } from "../../app/types"
-import useMouse from "../mouse/useMouse"
-import render from "./render"
+import render, { MARKER_SIZE } from "./render"
+import { current } from "@reduxjs/toolkit"
+import useInput from "../input/useInput"
 
 interface MapCanvasProps {}
 
 const ZOOM_STEP = 0.25
+const DRAG_THRESHOLD = 300
 
 const MapCanvas = ({}: MapCanvasProps) => {
   const [windowDimension, setWindowDimensions] = useState({
@@ -25,11 +35,17 @@ const MapCanvas = ({}: MapCanvasProps) => {
   const [image, setImage] = useState<HTMLImageElement>()
   const [cameraZoom, setCameraZoom] = useState<number>(1)
   const [hoverMarker, setHoverMarker] = useState<string | undefined>()
-
+  const [startedDragOnMarker, setStartedDragOnMarker] = useState(false)
+  const [draggingMarkers, setDraggingMarkers] = useState(false)
   const dispatch = useAppDispatch()
   const currentMap = useAppSelector(getCurrentMap)
   const canvas = useRef<HTMLCanvasElement>(null)
-  const { mouseState: mouse, updateMouse } = useMouse({
+  const {
+    mouseState: mouse,
+    updateMouse,
+    keyboardState: keyboard,
+    updateKeyboard,
+  } = useInput({
     parent: canvas,
     worldPositionTransform: (pos: Position) =>
       screenToWorldPosition(pos, cameraPos, cameraZoom),
@@ -90,6 +106,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
       map: currentMap,
       markers,
       hoverMarker,
+      draggingMarkers,
     })
   }, [
     canvas,
@@ -100,6 +117,8 @@ const MapCanvas = ({}: MapCanvasProps) => {
     mouse,
     markers,
     currentMap?.activeMarker,
+    currentMap?.selectedMarkers,
+    draggingMarkers,
     hoverMarker,
   ])
 
@@ -120,8 +139,25 @@ const MapCanvas = ({}: MapCanvasProps) => {
       setHoverMarker(findHoveredMarker(markers, mouse)?.id)
     }
 
+    if (
+      mouse.buttons.left.pressed &&
+      startedDragOnMarker &&
+      duration(mouse.buttons.left.holdStart) >= DRAG_THRESHOLD
+    ) {
+      setDraggingMarkers(true)
+    }
+
+    if (mouse.buttons.left.justReleased && draggingMarkers && mouse.position) {
+      if (currentMap?.activeMarker) {
+        dispatch(updateMarkerPosition(mouse.position))
+      }
+      setStartedDragOnMarker(false)
+      setDraggingMarkers(false)
+    }
+
     if (hoverMarker) {
       if (mouse.buttons.left.justPressed) {
+        setStartedDragOnMarker(true)
         dispatch(setActiveMarker(hoverMarker))
       }
       if (
@@ -129,6 +165,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
         duration(mouse.buttons.right.holdStart) <= 300
       ) {
         dispatch(removeMarker(hoverMarker))
+        dispatch(setSelectedMarkers(undefined))
       }
     } else {
       if (
@@ -142,12 +179,20 @@ const MapCanvas = ({}: MapCanvasProps) => {
       }
 
       if (
-        mouse.buttons.left.justReleased &&
-        duration(mouse.buttons.left.holdStart) <= 300
+        mouse.buttons.right.justReleased &&
+        duration(mouse.buttons.right.holdStart) < 300
       ) {
-        const id = crypto.randomUUID()
+        dispatch(setActiveMarker(undefined))
+      }
 
-        // TODO: Drag rectangle positioning
+      if (
+        mouse.buttons.left.justReleased &&
+        mouse.buttons.left.startClickPos &&
+        duration(mouse.buttons.left.holdStart) < 300 &&
+        distance(mouse.buttons.left.startClickPos, mouse.position) < MARKER_SIZE
+      ) {
+        // Create a new marker
+        const id = crypto.randomUUID()
 
         dispatch(
           addMarker({
@@ -155,13 +200,69 @@ const MapCanvas = ({}: MapCanvasProps) => {
             ...mouse.position,
           }),
         )
+
+        // If shift is held, automatically parent it to previous marker
+        if (keyboard.keys.shift.pressed && currentMap?.activeMarker) {
+          dispatch(setMarkerParent({ id, parent: currentMap.activeMarker }))
+        }
+
         dispatch(setActiveMarker(id))
-        //setHoverMarker(id)
+      }
+
+      if (
+        !startedDragOnMarker &&
+        mouse.buttons.left.justReleased &&
+        mouse.buttons.left.startClickPos &&
+        distance(mouse.buttons.left.startClickPos, mouse.position) > MARKER_SIZE
+      ) {
+        const startPos = {
+          x: Math.min(mouse.buttons.left.startClickPos.x, mouse.position.x),
+          y: Math.min(mouse.buttons.left.startClickPos.y, mouse.position.y),
+        }
+        const endPos = {
+          x: Math.max(mouse.buttons.left.startClickPos.x, mouse.position.x),
+          y: Math.max(mouse.buttons.left.startClickPos.y, mouse.position.y),
+        }
+        const selected = markers
+          ?.filter(
+            (m) =>
+              m.x > startPos.x &&
+              m.x < endPos.x &&
+              m.y > startPos.y &&
+              m.y < endPos.y,
+          )
+          .map((m) => m.id)
+        dispatch(setSelectedMarkers(selected))
       }
     }
 
     updateMouse()
-  }, [mouse, updateMouse, markers, hoverMarker])
+    updateKeyboard()
+  }, [
+    mouse,
+    updateMouse,
+    keyboard,
+    updateKeyboard,
+    markers,
+    hoverMarker,
+    currentMap?.activeMarker,
+  ])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code == "Delete" && currentMap?.selectedMarkers) {
+        currentMap.selectedMarkers.forEach((id) => {
+          dispatch(removeMarker(id))
+        })
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown, false)
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown)
+    }
+  }, [currentMap?.selectedMarkers])
 
   return (
     <Box

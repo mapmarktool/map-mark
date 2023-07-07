@@ -2,6 +2,7 @@ import { PayloadAction, createSlice } from "@reduxjs/toolkit"
 import { RootState } from "../../app/store"
 import MapData, { Marker } from "../maps/MapData"
 import { Position } from "../../app/types"
+import { MarkEmailRead } from "@mui/icons-material"
 
 interface EditorState {
   currentMap: string | null
@@ -70,6 +71,7 @@ export const editorSlice = createSlice({
       if (mapIndex >= 0) {
         if (!action.payload) {
           state.maps[mapIndex].activeMarker = undefined
+          state.maps[mapIndex].selectedMarkers = undefined
           return
         }
 
@@ -77,6 +79,34 @@ export const editorSlice = createSlice({
           (m) => m.id == action.payload,
         )
         state.maps[mapIndex].activeMarker = marker?.id
+        state.maps[mapIndex].selectedMarkers = marker ? [marker.id] : undefined
+      }
+    },
+    setMarkerParent: (
+      state,
+      action: PayloadAction<{ id: string; parent?: string }>,
+    ) => {
+      const mapIndex = getCurrMapIndex(state)
+      if (mapIndex >= 0) {
+        if (!action.payload) {
+          return
+        }
+
+        const markerIndex = state.maps[mapIndex].markers.findIndex(
+          (m) => m.id == action.payload.id,
+        )
+
+        state.maps[mapIndex].markers[markerIndex].parentId =
+          action.payload.parent
+      }
+    },
+    setSelectedMarkers: (
+      state,
+      action: PayloadAction<string[] | undefined>,
+    ) => {
+      const mapIndex = getCurrMapIndex(state)
+      if (mapIndex >= 0) {
+        state.maps[mapIndex].selectedMarkers = action.payload
       }
     },
     removeMarker: (state, action: PayloadAction<string>) => {
@@ -90,6 +120,14 @@ export const editorSlice = createSlice({
         if (currMap.activeMarker == action.payload) {
           state.maps[mapIndex].activeMarker = undefined
         }
+
+        state.maps[mapIndex].markers.forEach((m) => {
+          m.parentId = m.parentId == action.payload ? undefined : m.parentId
+        })
+
+        state.maps[mapIndex].selectedMarkers = state.maps[
+          mapIndex
+        ].selectedMarkers?.filter((id) => id != action.payload)
       }
     },
     addMarker: (state, action: PayloadAction<AddMarkerPayload>) => {
@@ -138,6 +176,8 @@ export const {
   updateMarkerPosition,
   updateMarkerName,
   setActiveMarker,
+  setMarkerParent,
+  setSelectedMarkers,
   setBgColor,
 } = editorSlice.actions
 

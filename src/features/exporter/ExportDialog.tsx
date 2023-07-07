@@ -17,7 +17,7 @@ import { copyToClipboard } from "../../helpers"
 
 interface ExportDialogProps {
   map?: MapData
-  markers?: Marker[]
+  markers?: Marker[] | Marker
   open: boolean
   onClose: () => void
 }
@@ -28,7 +28,11 @@ const ExportDialog = ({ map, markers, open, onClose }: ExportDialogProps) => {
 
   useEffect(() => {
     if (exporter && map && markers) {
-      setOutput(exporter.exportMap(map, markers))
+      setOutput(
+        Array.isArray(markers)
+          ? exporter.exportMap(map, markers)
+          : exporter.exportMarker(map, markers),
+      )
     }
   }, [exporter, map, markers])
 

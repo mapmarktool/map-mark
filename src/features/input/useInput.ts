@@ -6,6 +6,12 @@ import {
   mouseHandler,
 } from "./mouseState"
 import { Position } from "../../app/types"
+import {
+  InputKey,
+  KeyboardState,
+  initialKeyboardState,
+  keyboardHandler,
+} from "./keyboardState"
 
 interface UseMouseSettings {
   parent: RefObject<HTMLElement>
@@ -14,7 +20,43 @@ interface UseMouseSettings {
 
 function useMouse({ parent, worldPositionTransform }: UseMouseSettings) {
   const [mouseState, setMouseState] = useState<MouseState>(initialMouseState)
+  const [keyboardState, setKeyboardState] =
+    useState<KeyboardState>(initialKeyboardState)
 
+  // Keyboard input
+  useEffect(() => {
+    function onKeyDownHandler(ev: KeyboardEvent) {
+      const key = ev.key.toLowerCase() as InputKey
+
+      if (!ev.repeat && Object.values(InputKey).indexOf(key) >= 0) {
+        setKeyboardState(keyboardHandler.press(keyboardState, key))
+      }
+    }
+
+    function onKeyUpHandler(ev: KeyboardEvent) {
+      const key = ev.key.toLowerCase() as InputKey
+
+      if (!ev.repeat && Object.values(InputKey).indexOf(key) >= 0) {
+        setKeyboardState(keyboardHandler.release(keyboardState, key))
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDownHandler)
+    window.addEventListener("keyup", onKeyUpHandler)
+
+    console.log("Hooking up keyboard stuff")
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDownHandler)
+      window.removeEventListener("keyup", onKeyUpHandler)
+    }
+  }, [])
+
+  function updateKeyboard() {
+    setKeyboardState(keyboardHandler.update(keyboardState))
+  }
+
+  // Mouse Input
   useEffect(() => {
     function mouseMoveHandler(ev: MouseEvent) {
       const pos = { x: ev.offsetX, y: ev.offsetY }
@@ -107,6 +149,8 @@ function useMouse({ parent, worldPositionTransform }: UseMouseSettings) {
   return {
     mouseState,
     updateMouse,
+    keyboardState,
+    updateKeyboard,
   }
 }
 

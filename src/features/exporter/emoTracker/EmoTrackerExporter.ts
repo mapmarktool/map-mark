@@ -1,7 +1,21 @@
 import { Exporter } from "../Exporter"
 import MapData, { Marker } from "../../maps/MapData"
 
-function markerToLocation(map: MapData, marker: Marker) {
+interface EmoTrackerLocation {
+  name?: string
+  map_locations: Array<{
+    map: string
+    x: number
+    y: number
+  }>
+  children?: EmoTrackerLocation[]
+}
+
+function markerToLocation(
+  map: MapData,
+  marker: Marker,
+  otherMarkers?: Marker[],
+): EmoTrackerLocation {
   return {
     name: marker.name,
     map_locations: [
@@ -11,6 +25,9 @@ function markerToLocation(map: MapData, marker: Marker) {
         y: marker.y,
       },
     ],
+    children: otherMarkers
+      ?.filter((m) => m.parentId == marker.id)
+      .map((m) => markerToLocation(map, m, otherMarkers)),
   }
 }
 
@@ -21,7 +38,9 @@ const EmotrackerExporter: Exporter = {
   },
   exportMap: function (map: MapData, markers: Marker[]): string {
     return JSON.stringify(
-      markers.map((marker) => markerToLocation(map, marker)),
+      markers
+        .filter((m) => !m.parentId)
+        .map((marker) => markerToLocation(map, marker, markers)),
       null,
       4,
     )

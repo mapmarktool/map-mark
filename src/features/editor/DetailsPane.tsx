@@ -13,12 +13,18 @@ import {
   Button,
   IconButton,
   Tooltip,
+  Select,
+  InputLabel,
+  FormControl,
+  MenuItem,
+  Autocomplete,
 } from "@mui/material"
 import ColorPicker from "./ColorPicker"
 import {
   getCurrentMap,
   setActiveMarker,
   setBgColor,
+  setMarkerParent,
   updateMarkerName,
   updateMarkerPosition,
 } from "./editorSlice"
@@ -27,14 +33,14 @@ import { Fragment, useEffect, useRef, useState } from "react"
 import EmotrackerExporter from "../exporter/emoTracker/EmoTrackerExporter"
 import ExportDialog from "../exporter/ExportDialog"
 import { Marker } from "../maps/MapData"
-import { FileCopy } from "@mui/icons-material"
+import { FileCopy, SelectAllOutlined } from "@mui/icons-material"
 import { copyToClipboard } from "../../helpers"
 
 interface DetailsPaneProps {}
 
 const DetailsPane = ({}: DetailsPaneProps) => {
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
-  const [exportMarkers, setExportMarkers] = useState<Marker[]>([])
+  const [exportMarkers, setExportMarkers] = useState<Marker[] | Marker>([])
   const currentMap = useAppSelector(getCurrentMap)
   const dispatch = useAppDispatch()
   const nameField = useRef<HTMLInputElement>()
@@ -56,7 +62,7 @@ const DetailsPane = ({}: DetailsPaneProps) => {
 
   useEffect(() => {
     nameField.current?.focus()
-  }, [markers])
+  }, [markers?.length])
 
   return (
     <Paper elevation={2} sx={{ width: 300, borderRadius: 0, padding: 2 }}>
@@ -124,21 +130,23 @@ const DetailsPane = ({}: DetailsPaneProps) => {
                 }}
               />
               <Tooltip placement="right" title="Copy position to clipboard">
-                <IconButton
-                  aria-label="Copy"
-                  disabled={!activeMarker}
-                  onClick={() => {
-                    if (activeMarker) {
-                      copyToClipboard(
-                        `
+                <span>
+                  <IconButton
+                    aria-label="Copy"
+                    disabled={!activeMarker}
+                    onClick={() => {
+                      if (activeMarker) {
+                        copyToClipboard(
+                          `
 "x": ${activeMarker.x},
 "y": ${activeMarker.y}`,
-                      )
-                    }
-                  }}
-                >
-                  <FileCopy />
-                </IconButton>
+                        )
+                      }
+                    }}
+                  >
+                    <FileCopy />
+                  </IconButton>
+                </span>
               </Tooltip>
             </Stack>
             <Button
@@ -147,7 +155,7 @@ const DetailsPane = ({}: DetailsPaneProps) => {
               sx={{ marginTop: 2 }}
               onClick={() => {
                 if (currentMap && activeMarker) {
-                  setExportMarkers([activeMarker])
+                  setExportMarkers(activeMarker)
                   setExportDialogOpen(true)
                 }
               }}
