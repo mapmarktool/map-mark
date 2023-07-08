@@ -19,6 +19,7 @@ export interface CreateMapPayload {
   id: string
   image: string
   name: string
+  bgColor?: string
 }
 
 export type UpdateMapPayload = CreateMapPayload

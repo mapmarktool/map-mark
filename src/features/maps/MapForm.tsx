@@ -7,6 +7,7 @@ import {
   DialogTitle,
   Stack,
   TextField,
+  Typography,
   useTheme,
 } from "@mui/material"
 import { Formik } from "formik"
@@ -20,6 +21,7 @@ import {
 import MapData from "./MapData"
 import ConfirmationDialog from "../ui/ConfirmationDialog"
 import { SetStateAction, useState } from "react"
+import ColorPicker from "../editor/ColorPicker"
 
 interface MapFormProps {
   open: boolean
@@ -30,6 +32,7 @@ interface MapFormProps {
 export interface MapFormData {
   name: string
   image?: string
+  bgColor?: string
 }
 
 type MapFormErrors = { [key in keyof MapFormData]?: string }
@@ -76,10 +79,15 @@ const MapForm = ({ open, map, onClose }: MapFormProps) => {
     ? {
         name: map.name,
         image: map.image,
+        bgColor: map.bgColor,
       }
     : undefined
 
-  const emptyMapForm: MapFormData = { name: "", image: undefined }
+  const emptyMapForm: MapFormData = {
+    name: "",
+    image: undefined,
+    bgColor: undefined,
+  }
   const initialValues: MapFormData = data ?? emptyMapForm
 
   function handleDelete(
@@ -118,6 +126,7 @@ const MapForm = ({ open, map, onClose }: MapFormProps) => {
                 id: crypto.randomUUID(),
                 name: values.name,
                 image: values.image,
+                bgColor: values.bgColor,
               }
 
               if (map) {
@@ -188,6 +197,20 @@ const MapForm = ({ open, map, onClose }: MapFormProps) => {
                       }
                       helperText={errors.name && touched.name && errors.name}
                     />
+
+                    <Box>
+                      <Typography variant="overline" display="block">
+                        Background
+                      </Typography>
+                      <ColorPicker
+                        width={32}
+                        height={32}
+                        color={values.bgColor ?? "#000"}
+                        onChange={(hex) =>
+                          setValues({ ...values, bgColor: hex })
+                        }
+                      />
+                    </Box>
                   </Stack>
                 </Box>
               </DialogContent>

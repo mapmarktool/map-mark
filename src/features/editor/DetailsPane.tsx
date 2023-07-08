@@ -95,17 +95,6 @@ const DetailsPane = ({}: DetailsPaneProps) => {
     <Paper elevation={2} sx={{ width: 300, borderRadius: 0, padding: 2 }}>
       <Stack gap={2}>
         <Box>
-          <Box>
-            <Typography variant="overline" display="block">
-              Background
-            </Typography>
-            <ColorPicker
-              width={32}
-              height={32}
-              color={currentMap?.bgColor ?? "#000"}
-              onChange={(hex) => dispatch(setBgColor(hex))}
-            />
-          </Box>
           <Typography variant="overline" display="block">
             Active Location
           </Typography>

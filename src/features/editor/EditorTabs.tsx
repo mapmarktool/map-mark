@@ -4,11 +4,9 @@ import { useState } from "react"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { getCurrentMap, getMaps, selectMap } from "./editorSlice"
 
-interface EditorTabsProps {
-  onClickNew: () => void
-}
+interface EditorTabsProps {}
 
-const EditorTabs = ({ onClickNew }: EditorTabsProps) => {
+const EditorTabs = ({}: EditorTabsProps) => {
   const dispatch = useAppDispatch()
   const maps = useAppSelector(getMaps)
   const currentMap = useAppSelector(getCurrentMap)

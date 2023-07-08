@@ -3,9 +3,11 @@ import EditorTabs from "./EditorTabs"
 import MapEditor from "./MapEditor"
 import {
   AddCircle,
+  GitHub,
   InfoRounded,
   RemoveCircle,
   Settings,
+  Upload,
 } from "@mui/icons-material"
 import { useAppSelector } from "../../app/hooks"
 import { getCurrentMap, getMaps } from "./editorSlice"
@@ -77,9 +79,17 @@ const Editor = ({}: EditorProps) => {
           >
             Changelog
           </Button>
+          <Button
+            color="inherit"
+            onClick={() => dispatch(setChangelogOpen(true))}
+            startIcon={<GitHub />}
+            aria-label="changelog"
+            href="https://github.com/mapmarktool/map-mark/"
+            target="_blank"
+          ></Button>
         </Toolbar>
       </AppBar>
-      <EditorTabs onClickNew={() => setMapDialogOpen(true)} />
+      <EditorTabs />
       {currentMap && <MapEditor />}
     </Box>
   )

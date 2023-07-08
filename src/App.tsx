@@ -21,6 +21,7 @@ async function saveState(store: AppStore) {
   try {
     localStorage.setItem(SAVE_KEY, saveData)
   } catch (e) {
+    // TODO: Pop up error toast when it fails to save!!
     console.error("FAILED TO SAVE STATE: ", e)
   }
 }

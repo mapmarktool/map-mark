@@ -26,9 +26,15 @@ const ColorPicker = ({ color, onChange, width, height }: ColorPickerProps) => {
         onClick={() => setOpen(true)}
       ></Box>
       {open && (
-        <Box sx={{ position: "absolute", zIndex: 2 }}>
+        <Box sx={{ position: "fixed", zIndex: 20 }}>
           <Box
-            sx={{ position: "fixed", top: 0, bottom: 0, left: 0, right: 0 }}
+            sx={{
+              position: "fixed",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+            }}
             onClick={() => {
               setOpen(false)
               if (onChange) {
