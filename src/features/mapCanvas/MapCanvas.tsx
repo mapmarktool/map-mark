@@ -268,7 +268,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: currentMap?.bgColor,
+        backgroundColor: currentMap?.bgColor ?? "#000",
       }}
     ></Box>
   )

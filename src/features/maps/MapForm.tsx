@@ -2,30 +2,43 @@ import {
   Box,
   Button,
   Dialog,
-  Paper,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Stack,
   TextField,
-  Typography,
-  imageListClasses,
+  useTheme,
 } from "@mui/material"
 import { Formik } from "formik"
 import { useAppDispatch } from "../../app/hooks"
-import { newMap } from "../editor/editorSlice"
+import {
+  CreateMapPayload,
+  deleteMap,
+  newMap,
+  updateMap,
+} from "../editor/editorSlice"
+import MapData from "./MapData"
+import ConfirmationDialog from "../ui/ConfirmationDialog"
+import { SetStateAction, useState } from "react"
 
 interface MapFormProps {
   open: boolean
   onClose: () => void
+  map?: MapData
 }
 
-interface MapFormData {
+export interface MapFormData {
   name: string
   image?: string
 }
 
 type MapFormErrors = { [key in keyof MapFormData]?: string }
 
-const MapForm = ({ open, onClose }: MapFormProps) => {
+const MapForm = ({ open, map, onClose }: MapFormProps) => {
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false)
   const dispatch = useAppDispatch()
+  const theme = useTheme()
+
   function validate(values: MapFormData) {
     const errors: MapFormErrors = {}
 
@@ -59,26 +72,60 @@ const MapForm = ({ open, onClose }: MapFormProps) => {
     return image
   }
 
-  const initialValues: MapFormData = { name: "", image: undefined }
+  const data: MapFormData | undefined = map
+    ? {
+        name: map.name,
+        image: map.image,
+      }
+    : undefined
+
+  const emptyMapForm: MapFormData = { name: "", image: undefined }
+  const initialValues: MapFormData = data ?? emptyMapForm
+
+  function handleDelete(
+    setValues: (
+      values: React.SetStateAction<MapFormData>,
+      shouldValidate?: boolean,
+    ) => void,
+  ) {
+    if (map) {
+      dispatch(deleteMap(map.id))
+    }
+    setDeleteConfirmationOpen(false)
+    setValues(emptyMapForm, false)
+    onClose()
+  }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth>
-      <Box p={8}>
-        <Typography variant="h4" mb={3}>
-          Create map
-        </Typography>
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        fullWidth
+        transitionDuration={{
+          enter: theme.transitions.duration.enteringScreen,
+          exit: 0,
+          appear: 0,
+        }}
+      >
+        <DialogTitle>{map ? "Map settings" : "New map"}</DialogTitle>
         <Formik
           initialValues={initialValues}
           validate={validate}
           onSubmit={(values) => {
             if (values.image) {
-              dispatch(
-                newMap({
-                  id: crypto.randomUUID(),
-                  name: values.name,
-                  image: values.image,
-                }),
-              )
+              const data: CreateMapPayload = {
+                id: crypto.randomUUID(),
+                name: values.name,
+                image: values.image,
+              }
+
+              if (map) {
+                data.id = map.id
+                dispatch(updateMap(data))
+              } else {
+                dispatch(newMap(data))
+              }
             }
             onClose()
           }}
@@ -94,63 +141,89 @@ const MapForm = ({ open, onClose }: MapFormProps) => {
             isSubmitting,
           }) => (
             <form onSubmit={handleSubmit}>
-              <Stack gap={2}>
-                {(values.image && (
-                  <img
-                    style={{ height: 300, objectFit: "contain" }}
-                    src={values.image}
-                  />
-                )) || (
-                  <Box
-                    component="label"
-                    height="300px"
-                    border="1px dashed black"
-                    borderColor={(errors.image && "red") || "primary"}
-                    display="flex"
-                    justifyContent="center"
-                    alignItems="center"
-                    color={(errors.image && "red") || "primary"}
-                  >
-                    <input
-                      type="file"
-                      name="image"
-                      onChange={async (e) => {
-                        if (!e.currentTarget.files) {
-                          return
-                        }
-                        const image = await handleImage(e.currentTarget.files)
-                        if (image) {
-                          setValues({
-                            ...values,
-                            image,
-                          })
-                        }
-                      }}
-                      hidden
+              <DialogContent>
+                <Box p={4}>
+                  <Stack gap={2}>
+                    {values.image && (
+                      <img
+                        style={{ height: 300, objectFit: "contain" }}
+                        src={values.image}
+                      />
+                    )}
+
+                    <Button
+                      component="label"
+                      variant="outlined"
+                      color="primary"
+                    >
+                      <input
+                        type="file"
+                        name="image"
+                        onChange={async (e) => {
+                          if (!e.currentTarget.files) {
+                            return
+                          }
+                          const image = await handleImage(e.currentTarget.files)
+                          if (image) {
+                            setValues({
+                              ...values,
+                              image,
+                            })
+                          }
+                        }}
+                        hidden
+                      />
+                      Select image
+                    </Button>
+                    <TextField
+                      id="outlined-basic"
+                      label="Name"
+                      variant="outlined"
+                      name="name"
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      value={values.name}
+                      error={
+                        (errors.name?.length != 0 && touched.name) ?? false
+                      }
+                      helperText={errors.name && touched.name && errors.name}
                     />
-                    {errors.image || "Click to choose image"}
-                  </Box>
-                )}
-                <TextField
-                  id="outlined-basic"
-                  label="Name"
-                  variant="outlined"
-                  name="name"
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  value={values.name}
-                  error={(errors.name?.length != 0 && touched.name) ?? false}
-                  helperText={errors.name && touched.name && errors.name}
-                />
-                <Button variant="contained" color={"primary"} type="submit">
-                  Create
+                  </Stack>
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  type="submit"
+                  sx={{ flexGrow: 1 }}
+                >
+                  {map ? "Update" : "Create"}
                 </Button>
-              </Stack>
+                {map && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="large"
+                    onClick={() => setDeleteConfirmationOpen(true)}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </DialogActions>
+              <ConfirmationDialog
+                open={deleteConfirmationOpen}
+                title="Are you sure you want to delete the map?"
+                content="This will remove the map and all locations assigned to the map."
+                onCancel={() => setDeleteConfirmationOpen(false)}
+                onConfirm={() => handleDelete(setValues)}
+              />
             </form>
           )}
         </Formik>
-      </Box>
-    </Dialog>
+      </Dialog>
+    </>
   )
 }
 

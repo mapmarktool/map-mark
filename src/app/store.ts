@@ -1,14 +1,24 @@
 import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit"
 import { editorReducer } from "../features/editor/editorSlice"
+import { uiReducer } from "../features/ui/uiSlice"
 
-export const store = configureStore({
-  reducer: {
-    editor: editorReducer,
-  },
-})
+export const store = (preloadedState?: RootState) => {
+  const store = configureStore({
+    reducer: {
+      editor: editorReducer,
+      ui: uiReducer,
+    },
+    preloadedState: preloadedState,
+  })
+  return store
+}
 
-export type AppDispatch = typeof store.dispatch
-export type RootState = ReturnType<typeof store.getState>
+export type AppStore = ReturnType<typeof store>
+export type AppDispatch = AppStore["dispatch"]
+export type RootState = {
+  editor: ReturnType<typeof editorReducer>
+  ui: ReturnType<typeof uiReducer>
+}
 export type AppThunk<ReturnType = void> = ThunkAction<
   ReturnType,
   RootState,

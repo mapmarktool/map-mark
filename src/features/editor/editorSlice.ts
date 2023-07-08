@@ -2,7 +2,6 @@ import { PayloadAction, createSlice } from "@reduxjs/toolkit"
 import { RootState } from "../../app/store"
 import MapData, { Location } from "../maps/MapData"
 import { Position } from "../../app/types"
-import { MarkEmailRead } from "@mui/icons-material"
 
 interface EditorState {
   currentMap: string | null
@@ -16,11 +15,13 @@ const initialState: EditorState = {
   locations: [],
 }
 
-interface CreateMapPayload {
+export interface CreateMapPayload {
   id: string
   image: string
   name: string
 }
+
+export type UpdateMapPayload = CreateMapPayload
 
 interface AddLocationPayload {
   id: string
@@ -56,6 +57,23 @@ export const editorSlice = createSlice({
       const bgColor = lastMap?.bgColor ?? undefined
       state.maps = [...state.maps, { bgColor, ...action.payload }]
       state.currentMap = action.payload.id
+    },
+    updateMap: (state, action: PayloadAction<UpdateMapPayload>) => {
+      const mapIndex = state.maps.findIndex((m) => m.id == action.payload.id)
+      if (mapIndex < 0) {
+        return
+      }
+      state.maps[mapIndex] = {
+        ...state.maps[mapIndex],
+        ...action.payload,
+      }
+    },
+    deleteMap: (state, action: PayloadAction<string>) => {
+      state.maps = state.maps.filter((m) => m.id != action.payload)
+      if (state.currentMap == action.payload) {
+        state.currentMap = state.maps.length > 0 ? state.maps[0].id : null
+      }
+      state.locations = state.locations.filter((l) => l.map != action.payload)
     },
     selectMap: (state, action: PayloadAction<string>) => {
       if (state.maps.find((m) => action.payload === m.id)) {
@@ -158,6 +176,8 @@ export const editorSlice = createSlice({
 export const {
   selectMap,
   newMap,
+  deleteMap,
+  updateMap,
   addLocation,
   removeLocation,
   updateLocationPosition,
