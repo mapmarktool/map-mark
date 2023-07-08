@@ -18,7 +18,11 @@ async function saveState(store: AppStore) {
     console.warn("NOT ENOUGH SPACE TO SAVE DATA")
   }
 
-  localStorage.setItem(SAVE_KEY, saveData)
+  try {
+    localStorage.setItem(SAVE_KEY, saveData)
+  } catch (e) {
+    console.error("FAILED TO SAVE STATE: ", e)
+  }
 }
 
 function App() {

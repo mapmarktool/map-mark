@@ -1,4 +1,4 @@
-import { Box } from "@mui/material"
+import { Alert, AlertTitle, Box } from "@mui/material"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import {
   addLocation,
@@ -33,7 +33,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
     width: window.innerWidth,
   })
   const [cameraPos, setCameraPos] = useState<Position>({ x: 0, y: 0 })
-  const [image, setImage] = useState<HTMLImageElement>()
+  const [image, setImage] = useState<HTMLImageElement | undefined>()
   const [cameraZoom, setCameraZoom] = useState<number>(1)
   const [hoverMarker, setHoverMarker] = useState<string | undefined>()
   const [startedDragOnMarker, setStartedDragOnMarker] = useState(false)
@@ -77,6 +77,7 @@ const MapCanvas = ({}: MapCanvasProps) => {
 
   useEffect(() => {
     if (!imageData) {
+      setImage(undefined)
       return
     }
 
@@ -87,16 +88,17 @@ const MapCanvas = ({}: MapCanvasProps) => {
       setImage(image)
 
       if (canvas?.current) {
+        setCameraZoom(1)
         setCameraPos({
-          x: (canvas.current.clientWidth - image.width) / 2 / cameraZoom,
-          y: (canvas.current.clientHeight - image.height) / 2 / cameraZoom,
+          x: 0,
+          y: 0,
         })
       }
     }
   }, [imageData, canvas])
 
   useEffect(() => {
-    if (!canvas.current || !image) {
+    if (!canvas.current) {
       return
     }
 
@@ -260,17 +262,39 @@ const MapCanvas = ({}: MapCanvasProps) => {
   ])
 
   return (
-    <Box
-      ref={canvas}
-      component={"canvas"}
-      sx={{
-        flexGrow: 5,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: currentMap?.bgColor ?? "#000",
-      }}
-    ></Box>
+    <>
+      <Box
+        ref={canvas}
+        component={"canvas"}
+        sx={{
+          flexGrow: 5,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: currentMap?.bgColor ?? "#000",
+        }}
+      ></Box>
+      {!image && (
+        <Box
+          sx={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <Alert severity="warning">
+            <AlertTitle>No image set for map!</AlertTitle>
+            Please go to "Map Settings" and select an image.
+          </Alert>
+        </Box>
+      )}
+    </>
   )
 }
 

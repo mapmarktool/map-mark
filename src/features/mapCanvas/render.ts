@@ -6,7 +6,7 @@ import { MouseState } from "../input/mouseState"
 
 interface RenderData {
   canvas: HTMLCanvasElement
-  image: HTMLImageElement
+  image?: HTMLImageElement
   cameraPos: Position
   cameraZoom: number
   mouseState: MouseState
@@ -49,7 +49,9 @@ export default function render({
   ctx.translate(camera.position.x, camera.position.y)
   ctx.scale(camera.zoom, camera.zoom)
 
-  ctx.drawImage(image as CanvasImageSource, 0, 0, image.width, image.height)
+  if (image) {
+    ctx.drawImage(image as CanvasImageSource, 0, 0, image.width, image.height)
+  }
 
   if (mouse.position) {
     ctx.fillStyle = "rgba(0,0,0,0.25)"

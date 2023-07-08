@@ -10,7 +10,7 @@ export interface Location {
 export default interface MapData {
   id: string
   name: string
-  image: string
+  image?: string
   bgColor?: string
   activeLocation?: string
   selectedLocations?: string[]
