@@ -2,7 +2,7 @@
 
 A tool for quickly setting up `locations.json` for EmoTracker map trackers.
 
-Check it out [here](mapmarktool.github.io)!
+Check it out [here](https://mapmarktool.github.io/map-mark)!
 
 ## Demo
 
